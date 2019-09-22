@@ -8,7 +8,9 @@ import random
 from time import sleep
 site = "https://mirai.badpackets.net"
 
-#User agent from https://www.scrapehero.com/how-to-fake-and-rotate-user-agents-using-python-3/ :)
+arg1 = int(sys.argv[1])
+arg2 = int(sys.argv[2])
+
 user_agent_list = [
    #Chrome
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36'
@@ -21,8 +23,7 @@ def parse(page):
     sleep(1)
     rows = []
     try:
-        user_agent = random.choice(user_agent_list)
-        headers = {'User-Agent': user_agent}
+        headers = {'User-Agent': user_agent_list[0]}
         r = requests.get("{}/?page={}".format(site, page),headers=headers)
         table = r.text.split("<tbody >")[1].split("</tbody>")[0]
         count = table.count("<tr")
@@ -57,10 +58,10 @@ if __name__ == '__main__':
 
     rows = []
     with Pool(5) as p:
-        records = p.map(parse, range(1000, 2000+1))
+        records = p.map(parse, range(arg1, min(arg2, pages)+1))
         
     print("Done pool")
     sys.stdout.flush()
     columns = ["IP_Address","Autonomous_System","Country","ASN","Date_First_Seen"]
     df = pd.DataFrame(list(chain(*records)), columns=columns)
-    df.to_csv("mirai.csv", index=False)
+    df.to_csv("mirai_{}_{}.csv".format(arg1, arg2, index=False))
