@@ -52,3 +52,16 @@ ax = sns.scatterplot(
 ax.set(xscale="log", yscale="log")
 plt.tight_layout()
 plt.savefig("figures/packets_by_country_scatter")
+plt.close()
+
+# Figure 2: Amount of packets over time
+dates = data['Date_First_Seen']
+data_month_year = dates.apply(lambda date: (date.year, date.month))
+date_histogram = data_month_year.value_counts().sort_index().to_frame()
+date_histogram['Date'] = date_histogram.index
+date_histogram.columns = ['Packets', 'Date']
+date_histogram['Date'] = date_histogram['Date'].apply(lambda x: '{}-{}'.format(*x))
+ax = sns.lineplot(data=date_histogram, x='Date', y='Packets', palette='GnBu_d', marker='o', sort=False)
+plt.xticks(rotation=35)
+plt.tight_layout()
+plt.savefig('figures/packets_over_time') 
