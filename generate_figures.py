@@ -16,13 +16,13 @@ for country in pycountry.countries:
 # Figure 1: Amount of packets by country
 top_count = 20
 
-count_per_country = data.groupby("Country").size().reset_index(name="Packets")
+count_per_country_date = data.groupby("Country").size().reset_index(name="Packets")
 users_per_country = users_per_country.rename(columns={"Country or Area": "Country"})
 users_per_country["Country"] = users_per_country["Country"].apply(
     lambda x: countries.get(x, "Unknown code")
 )
 combined_data = pd.merge(
-    count_per_country, users_per_country, on="Country", how="inner"
+    count_per_country_date, users_per_country, on="Country", how="inner"
 )
 combined_data.drop(columns=["Population", "Rank", "Percentage", "Rank.1"], inplace=True)
 combined_data["Internet Users"] = combined_data["Internet Users"].apply(
@@ -40,28 +40,67 @@ sorted_countries = sorted_countries.sort_values(by="Packets / Users", ascending=
 top_countries = sorted_countries.head(top_count)
 sns.barplot(data=top_countries, x="Country", y="Packets / Users", palette="GnBu_d")
 plt.tight_layout()
-plt.savefig("figures/packets_by_country")
+plt.savefig("figures/infected_hosts_by_country")
 plt.close()
 
 # Scatter plot comparing country internet usage with amount of mirai packets
 sorted_countries = combined_data.sort_values(by="Internet Users", ascending=False)
-sorted_countries = sorted_countries.head(10)
+sorted_countries = sorted_countries.head(15)
 ax = sns.scatterplot(
     data=sorted_countries, x="Internet Users", y="Packets", hue="Country"
 )
 ax.set(xscale="log", yscale="log")
 plt.tight_layout()
-plt.savefig("figures/packets_by_country_scatter")
+plt.savefig("figures/infected_hosts_by_country_scatter")
 plt.close()
 
 # Figure 2: Amount of packets over time
-dates = data['Date_First_Seen']
+dates = data["Date_First_Seen"]
 data_month_year = dates.apply(lambda date: (date.year, date.month))
 date_histogram = data_month_year.value_counts().sort_index().to_frame()
-date_histogram['Date'] = date_histogram.index
-date_histogram.columns = ['Packets', 'Date']
-date_histogram['Date'] = date_histogram['Date'].apply(lambda x: '{}-{}'.format(*x))
-ax = sns.lineplot(data=date_histogram, x='Date', y='Packets', palette='GnBu_d', marker='o', sort=False)
+date_histogram["Date"] = date_histogram.index
+date_histogram.columns = ["Packets", "Date"]
+date_histogram["Date"] = date_histogram["Date"].apply(lambda x: "{}-{}".format(*x))
+ax = sns.lineplot(
+    data=date_histogram, x="Date", y="Packets", palette="GnBu_d", marker="o", sort=False
+)
 plt.xticks(rotation=35)
 plt.tight_layout()
-plt.savefig('figures/packets_over_time') 
+plt.savefig("figures/infected_hosts_over_time")
+
+# Figure 3: Hosts per country and time
+data["Date_First_Seen"] = data["Date_First_Seen"].apply(
+    lambda date: (date.year, date.month)
+)
+count_per_country_date = (
+    data.groupby(["Country", "Date_First_Seen"]).size().reset_index(name="Hosts")
+)
+users_per_country.drop(
+    columns=["Population", "Rank", "Percentage", "Rank.1"], inplace=True
+)
+users_per_country["Internet Users"] = users_per_country["Internet Users"].apply(
+    lambda x: x.replace(",", "")
+)
+users_per_country["Internet Users"] = pd.to_numeric(users_per_country["Internet Users"])
+users_per_country = users_per_country.sort_values(
+    by="Internet Users", ascending=False
+).head(25)
+combined_data = pd.merge(
+    count_per_country_date, users_per_country, how="inner", on="Country"
+)
+combined_data["Infected Hosts / Internet Users"] = (
+    combined_data["Hosts"] / combined_data["Internet Users"]
+)
+combined_data.drop(columns=["Hosts", "Internet Users"], inplace=True)
+combined_data.rename(columns={"Date_First_Seen": "Date First Detected"}, inplace=True)
+data_country_time = pd.pivot_table(
+    combined_data,
+    index="Date First Detected",
+    columns="Country",
+    values="Infected Hosts / Internet Users",
+    fill_value=0,
+)
+data_country_time.index = ["{}-{}".format(*x) for x in data_country_time.index]
+sns.heatmap(data_country_time, cmap="GnBu")
+plt.tight_layout()
+plt.savefig("figures/infected_hosts_by_country_and_time")
