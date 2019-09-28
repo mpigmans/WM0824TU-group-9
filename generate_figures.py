@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pycountry
+import numpy as np
 
 # Data columns are as follows:
 # IP_Address ; Autonomous_System ; Country ; ASN ; Date_First_Seen
@@ -85,6 +86,7 @@ ax = sns.lineplot(
 plt.xticks(rotation=35)
 plt.tight_layout()
 plt.savefig("figures/infected_hosts_over_time")
+plt.close()
 
 # Figure 3: Hosts per country and time
 data["Date_First_Seen"] = data["Date_First_Seen"].apply(
@@ -122,3 +124,47 @@ data_country_time.index = ["{}-{}".format(*x) for x in data_country_time.index]
 sns.heatmap(data_country_time, cmap="GnBu")
 plt.tight_layout()
 plt.savefig("figures/infected_hosts_by_country_and_time")
+plt.close()
+
+# Block 3 - Calculate ROSI
+worldwide_hosts = 1e9
+company_hosts = 100
+z_value = 2.57  # Z value for 99% confidence intervals
+
+date_histogram.reset_index(inplace=True, drop=True)
+date_histogram["Infection Likelihood"] = (
+    date_histogram["Infected Hosts"] / worldwide_hosts
+)
+date_histogram["Expectation"] = date_histogram["Infection Likelihood"] * company_hosts
+date_histogram["Std"] = np.sqrt(
+    (
+        date_histogram["Infection Likelihood"]
+        * (1 - date_histogram["Infection Likelihood"])
+    )
+    / company_hosts
+)
+print(date_histogram)
+print(len(date_histogram))
+
+color = 'cornflowerblue'
+fig, ax = plt.subplots()
+ax.plot(np.arange(len(date_histogram)), date_histogram["Expectation"], color=color)
+ax.fill_between(
+    np.arange(len(date_histogram)),
+    date_histogram["Expectation"],
+    y2=date_histogram["Expectation"] + date_histogram["Std"],
+    alpha=0.4,
+    color=color
+)
+ax.fill_between(
+    np.arange(len(date_histogram)),
+    date_histogram["Expectation"],
+    y2=date_histogram["Expectation"] - date_histogram["Std"],
+    alpha=0.4,
+    color=color
+)
+ax.set_xticks(np.arange(len(date_histogram)))
+ax.set_xticklabels(date_histogram["Date"], rotation=40)
+ax.set_xlabel('Date')
+ax.set_ylabel('Amount of infected machines')
+plt.show()
