@@ -126,10 +126,13 @@ plt.tight_layout()
 plt.savefig("figures/infected_hosts_by_country_and_time")
 plt.close()
 
+
 # Block 3 - Calculate ROSI
 worldwide_hosts = 1e9
 company_hosts = 100
-z_value = 2.57  # Z value for 99% confidence intervals
+costs_mean = 2161409
+costs_std = 1400000
+color = 'cornflowerblue'
 
 date_histogram.reset_index(inplace=True, drop=True)
 date_histogram["Infection Likelihood"] = (
@@ -143,23 +146,22 @@ date_histogram["Std"] = np.sqrt(
     )
     / company_hosts
 )
-print(date_histogram)
-print(len(date_histogram))
+date_histogram['Upper'] = date_histogram["Expectation"] + date_histogram["Std"]
+date_histogram['Lower'] = date_histogram["Expectation"] - date_histogram["Std"]
 
-color = 'cornflowerblue'
 fig, ax = plt.subplots()
 ax.plot(np.arange(len(date_histogram)), date_histogram["Expectation"], color=color)
 ax.fill_between(
     np.arange(len(date_histogram)),
     date_histogram["Expectation"],
-    y2=date_histogram["Expectation"] + date_histogram["Std"],
+    y2=date_histogram["Upper"],
     alpha=0.4,
     color=color
 )
 ax.fill_between(
     np.arange(len(date_histogram)),
     date_histogram["Expectation"],
-    y2=date_histogram["Expectation"] - date_histogram["Std"],
+    y2=date_histogram["Lower"],
     alpha=0.4,
     color=color
 )
@@ -167,4 +169,37 @@ ax.set_xticks(np.arange(len(date_histogram)))
 ax.set_xticklabels(date_histogram["Date"], rotation=40)
 ax.set_xlabel('Date')
 ax.set_ylabel('Amount of infected machines')
-plt.show()
+plt.tight_layout()
+plt.savefig('figures/affected_machines')
+plt.close()
+
+# Plot the cost distribution over time
+date_histogram['Cost Expectation'] = date_histogram['Expectation'] * costs_mean
+date_histogram['Cost Upper'] = date_histogram['Upper'] * (costs_mean + costs_std)
+date_histogram['Cost Lower'] = date_histogram['Lower'] * (costs_mean - costs_std)
+
+fig, ax = plt.subplots()
+ax.plot(np.arange(len(date_histogram)), date_histogram["Cost Expectation"], color=color)
+ax.fill_between(
+    np.arange(len(date_histogram)),
+    date_histogram["Cost Expectation"],
+    y2=date_histogram["Cost Upper"],
+    alpha=0.4,
+    color=color
+)
+ax.fill_between(
+    np.arange(len(date_histogram)),
+    date_histogram["Cost Expectation"],
+    y2=date_histogram["Cost Lower"],
+    alpha=0.4,
+    color=color
+)
+ax.set_xticks(np.arange(len(date_histogram)))
+ax.set_xticklabels(date_histogram["Date"], rotation=40)
+ax.set_xlabel('Date')
+ax.set_ylabel('Costs (EUR)')
+plt.tight_layout()
+plt.savefig('figures/costs_machines')
+plt.close()
+
+print('ALE:', date_histogram.loc[7:18]['Cost Expectation'].sum())
