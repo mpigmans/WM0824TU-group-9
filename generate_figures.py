@@ -129,31 +129,39 @@ plt.close()
 
 # Block 3 - plot infections per IP block (by IP prefix)
 prefixes_to_plot = {
-    '4': 'CenturyLink',
-    '12': 'AT&T', 
-    '17': 'Apple',
-    '19': 'Ford',
-    '38': 'PSINet',
-    '44': 'Amateur Radio Digital Communications',
-    '48': 'Prudential Securities',
-    '56': 'US Postal Service',
-    '73': 'Comcast',
+    "4": "CenturyLink",
+    "12": "AT&T",
+    "17": "Apple",
+    "19": "Ford",
+    "38": "PSINet",
+    "44": "Amateur Radio Digital Communications",
+    "48": "Prudential Securities",
+    "56": "US Postal Service",
+    "73": "Comcast",
 }
-data_date_ip = data[['Date_First_Seen', 'IP_Address']].copy(deep=True)
-data_date_ip['IP_Prefix'] = data_date_ip['IP_Address'].apply(lambda ip: ip.split('.')[0])
-data_date_ip.drop(columns=['IP_Address'], inplace=True)
-data_date_ip = data_date_ip[data_date_ip['IP_Prefix'].isin(prefixes_to_plot.keys())]
-data_date_ip['IP_Prefix'] = data_date_ip['IP_Prefix'].map(prefixes_to_plot)
-date_ip_sizes = data_date_ip.groupby(["Date_First_Seen", "IP_Prefix"]).size().reset_index(name='Count')
-date_ip_sizes["Date"] = date_ip_sizes["Date_First_Seen"].apply(lambda x: "{}-{}".format(*x))
-sns.lineplot(data=date_ip_sizes, x='Date', y='Count', hue='IP_Prefix')
+data_date_ip = data[["Date_First_Seen", "IP_Address"]].copy(deep=True)
+data_date_ip["IP_Prefix"] = data_date_ip["IP_Address"].apply(
+    lambda ip: ip.split(".")[0]
+)
+data_date_ip.drop(columns=["IP_Address"], inplace=True)
+data_date_ip = data_date_ip[data_date_ip["IP_Prefix"].isin(prefixes_to_plot.keys())]
+data_date_ip["IP_Prefix"] = data_date_ip["IP_Prefix"].map(prefixes_to_plot)
+date_ip_sizes = (
+    data_date_ip.groupby(["Date_First_Seen", "IP_Prefix"])
+    .size()
+    .reset_index(name="Count")
+)
+date_ip_sizes["Date"] = date_ip_sizes["Date_First_Seen"].apply(
+    lambda x: "{}-{}".format(*x)
+)
+sns.lineplot(data=date_ip_sizes, x="Date", y="Count", hue="IP_Prefix")
 plt.xticks(rotation=35)
 plt.tight_layout()
 plt.savefig("figures/infected_hosts_over_time_by_ip_block")
 plt.close()
 
 # Block 3 - plot infections per autonomous system
-print(data['ASN'].value_counts())
+print(data["ASN"].value_counts())
 # asns_to_plot = {
 #     'AS8708': 'AS8708',
 #     'AS4766': 'AS4766',
@@ -162,17 +170,31 @@ print(data['ASN'].value_counts())
 #     'AS8452': 'AS8452',
 # }
 asns_to_plot = {
-    'AS209': 'CenturyLink Communications',
-    'AS7018': 'AT&T Services',
-    'AS7922': 'Comcast Cable Communications',
+    "AS209": "CenturyLink Communications",
+    "AS7018": "AT&T Services",
+    "AS7922": "Comcast Cable Communications",
 }
-data_date_asn = data[['Date_First_Seen', 'ASN']].copy(deep=True)
-data_date_asn = data_date_asn[data_date_asn['ASN'].isin(asns_to_plot.keys())]
-data_date_asn['ASN'] = data_date_asn['ASN'].map(asns_to_plot)
-date_asn_sizes = data_date_asn.groupby(["Date_First_Seen", "ASN"]).size().reset_index(name='Count')
-date_asn_sizes["Date"] = date_asn_sizes["Date_First_Seen"].apply(lambda x: "{}-{}".format(*x))
+isp_to_size = {
+    "CenturyLink Communications": 437388658,
+    "AT&T Services": 363293945,
+    "Comcast Cable Communications": 152939901,
+}  # Data from https://asrank.caida.org/
+data_date_asn = data[["Date_First_Seen", "ASN"]].copy(deep=True)
+data_date_asn = data_date_asn[data_date_asn["ASN"].isin(asns_to_plot.keys())]
+data_date_asn["ASN"] = data_date_asn["ASN"].map(asns_to_plot)
+date_asn_sizes = (
+    data_date_asn.groupby(["Date_First_Seen", "ASN"]).size().reset_index(name="Count")
+)
+date_asn_sizes["Infected / Total Addresses"] = date_asn_sizes["Count"] / date_asn_sizes[
+    "ASN"
+].map(isp_to_size)
+date_asn_sizes["Date"] = date_asn_sizes["Date_First_Seen"].apply(
+    lambda x: "{}-{}".format(*x)
+)
 print(date_asn_sizes)
-sns.lineplot(data=date_asn_sizes, x='Date', y='Count', hue='ASN', sort=False)
+sns.lineplot(
+    data=date_asn_sizes, x="Date", y="Infected / Total Addresses", hue="ASN", sort=False
+)
 plt.xticks(rotation=35)
 plt.tight_layout()
 plt.savefig("figures/infected_hosts_over_time_by_asn")
@@ -183,7 +205,7 @@ worldwide_hosts = 1e9
 company_hosts = 100
 costs_mean = 2161409
 costs_std = 1400000
-color = 'cornflowerblue'
+color = "cornflowerblue"
 
 date_histogram.reset_index(inplace=True, drop=True)
 date_histogram["Infection Likelihood"] = (
@@ -197,8 +219,8 @@ date_histogram["Std"] = np.sqrt(
     )
     / company_hosts
 )
-date_histogram['Upper'] = date_histogram["Expectation"] + date_histogram["Std"]
-date_histogram['Lower'] = date_histogram["Expectation"] - date_histogram["Std"]
+date_histogram["Upper"] = date_histogram["Expectation"] + date_histogram["Std"]
+date_histogram["Lower"] = date_histogram["Expectation"] - date_histogram["Std"]
 
 fig, ax = plt.subplots()
 ax.plot(np.arange(len(date_histogram)), date_histogram["Expectation"], color=color)
@@ -207,27 +229,27 @@ ax.fill_between(
     date_histogram["Expectation"],
     y2=date_histogram["Upper"],
     alpha=0.4,
-    color=color
+    color=color,
 )
 ax.fill_between(
     np.arange(len(date_histogram)),
     date_histogram["Expectation"],
     y2=date_histogram["Lower"],
     alpha=0.4,
-    color=color
+    color=color,
 )
 ax.set_xticks(np.arange(len(date_histogram)))
 ax.set_xticklabels(date_histogram["Date"], rotation=40)
-ax.set_xlabel('Date')
-ax.set_ylabel('Amount of infected machines')
+ax.set_xlabel("Date")
+ax.set_ylabel("Amount of infected machines")
 plt.tight_layout()
-plt.savefig('figures/affected_machines')
+plt.savefig("figures/affected_machines")
 plt.close()
 
 # Plot the cost distribution over time
-date_histogram['Cost Expectation'] = date_histogram['Expectation'] * costs_mean
-date_histogram['Cost Upper'] = date_histogram['Upper'] * (costs_mean + costs_std)
-date_histogram['Cost Lower'] = date_histogram['Lower'] * (costs_mean - costs_std)
+date_histogram["Cost Expectation"] = date_histogram["Expectation"] * costs_mean
+date_histogram["Cost Upper"] = date_histogram["Upper"] * (costs_mean + costs_std)
+date_histogram["Cost Lower"] = date_histogram["Lower"] * (costs_mean - costs_std)
 
 fig, ax = plt.subplots()
 ax.plot(np.arange(len(date_histogram)), date_histogram["Cost Expectation"], color=color)
@@ -236,23 +258,23 @@ ax.fill_between(
     date_histogram["Cost Expectation"],
     y2=date_histogram["Cost Upper"],
     alpha=0.4,
-    color=color
+    color=color,
 )
 ax.fill_between(
     np.arange(len(date_histogram)),
     date_histogram["Cost Expectation"],
     y2=date_histogram["Cost Lower"],
     alpha=0.4,
-    color=color
+    color=color,
 )
 ax.set_xticks(np.arange(len(date_histogram)))
 ax.set_xticklabels(date_histogram["Date"], rotation=40)
-ax.set_xlabel('Date')
-ax.set_ylabel('Costs (EUR)')
+ax.set_xlabel("Date")
+ax.set_ylabel("Costs (EUR)")
 plt.tight_layout()
-plt.savefig('figures/costs_machines')
+plt.savefig("figures/costs_machines")
 plt.close()
 
-print('Expected loss:', date_histogram.loc[0:18]['Cost Expectation'].sum())
-print('Upper loss:', date_histogram.loc[0:18]['Cost Upper'].sum())
-print('Lower loss:', date_histogram.loc[0:18]['Cost Lower'].sum())
+print("Expected loss:", date_histogram.loc[0:18]["Cost Expectation"].sum())
+print("Upper loss:", date_histogram.loc[0:18]["Cost Upper"].sum())
+print("Lower loss:", date_histogram.loc[0:18]["Cost Lower"].sum())
