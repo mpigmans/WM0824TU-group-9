@@ -127,6 +127,57 @@ plt.savefig("figures/infected_hosts_by_country_and_time")
 plt.close()
 
 
+# Block 3 - plot infections per IP block (by IP prefix)
+prefixes_to_plot = {
+    '4': 'CenturyLink',
+    '12': 'AT&T', 
+    '17': 'Apple',
+    '19': 'Ford',
+    '38': 'PSINet',
+    '44': 'Amateur Radio Digital Communications',
+    '48': 'Prudential Securities',
+    '56': 'US Postal Service',
+    '73': 'Comcast',
+}
+data_date_ip = data[['Date_First_Seen', 'IP_Address']].copy(deep=True)
+data_date_ip['IP_Prefix'] = data_date_ip['IP_Address'].apply(lambda ip: ip.split('.')[0])
+data_date_ip.drop(columns=['IP_Address'], inplace=True)
+data_date_ip = data_date_ip[data_date_ip['IP_Prefix'].isin(prefixes_to_plot.keys())]
+data_date_ip['IP_Prefix'] = data_date_ip['IP_Prefix'].map(prefixes_to_plot)
+date_ip_sizes = data_date_ip.groupby(["Date_First_Seen", "IP_Prefix"]).size().reset_index(name='Count')
+date_ip_sizes["Date"] = date_ip_sizes["Date_First_Seen"].apply(lambda x: "{}-{}".format(*x))
+sns.lineplot(data=date_ip_sizes, x='Date', y='Count', hue='IP_Prefix')
+plt.xticks(rotation=35)
+plt.tight_layout()
+plt.savefig("figures/infected_hosts_over_time_by_ip_block")
+plt.close()
+
+# Block 3 - plot infections per autonomous system
+print(data['ASN'].value_counts())
+# asns_to_plot = {
+#     'AS8708': 'AS8708',
+#     'AS4766': 'AS4766',
+#     'AS4134': 'AS4134',
+#     'AS4837': 'AS4837',
+#     'AS8452': 'AS8452',
+# }
+asns_to_plot = {
+    'AS209': 'CenturyLink Communications',
+    'AS7018': 'AT&T Services',
+    'AS7922': 'Comcast Cable Communications',
+}
+data_date_asn = data[['Date_First_Seen', 'ASN']].copy(deep=True)
+data_date_asn = data_date_asn[data_date_asn['ASN'].isin(asns_to_plot.keys())]
+data_date_asn['ASN'] = data_date_asn['ASN'].map(asns_to_plot)
+date_asn_sizes = data_date_asn.groupby(["Date_First_Seen", "ASN"]).size().reset_index(name='Count')
+date_asn_sizes["Date"] = date_asn_sizes["Date_First_Seen"].apply(lambda x: "{}-{}".format(*x))
+print(date_asn_sizes)
+sns.lineplot(data=date_asn_sizes, x='Date', y='Count', hue='ASN', sort=False)
+plt.xticks(rotation=35)
+plt.tight_layout()
+plt.savefig("figures/infected_hosts_over_time_by_asn")
+plt.close()
+
 # Block 3 - Calculate ROSI
 worldwide_hosts = 1e9
 company_hosts = 100
@@ -202,4 +253,6 @@ plt.tight_layout()
 plt.savefig('figures/costs_machines')
 plt.close()
 
-print('ALE:', date_histogram.loc[7:18]['Cost Expectation'].sum())
+print('Expected loss:', date_histogram.loc[0:18]['Cost Expectation'].sum())
+print('Upper loss:', date_histogram.loc[0:18]['Cost Upper'].sum())
+print('Lower loss:', date_histogram.loc[0:18]['Cost Lower'].sum())
