@@ -16,7 +16,7 @@ end_date = datetime.datetime(2018, 7, 1)
 data = pd.read_csv("data.csv", sep=";", parse_dates=["Date_First_Seen"])
 users_per_country = pd.read_csv("internet_users.csv")
 idi_data = pd.read_csv("idi_codes.csv")
-gdp_data = pd.read_csv("gdp_per_capita.csv")
+crime_data = pd.read_csv("crime_index.csv")
 
 # Combine datasets
 data = data.loc[
@@ -44,12 +44,13 @@ gci_data = pd.read_csv("gci.csv")
 gci_data = gci_data.rename(columns={"Member State": "Country", "Score": "GCI"})
 gci_data = gci_data.drop(columns=["Global Rank"])
 combined_data = pd.merge(combined_data, gci_data, on="Country", how="inner")
-combined_data = pd.merge(combined_data, gdp_data, on="Country", how="inner")
+combined_data = pd.merge(combined_data, crime_data, on="Country", how="inner")
 combined_data = pd.merge(combined_data, idi_data, on="Country", how="inner")
 
 # Make infections normal distribution using logarithm
-combined_data["Infections"] = combined_data["Infections"].apply(np.log)
-
+print(combined_data)
+combined_data["Infections"] = combined_data["Infections"].apply(np.log10)
+print(combined_data)
 correlation, p = pearsonr(combined_data["Infections"], combined_data["IDI"])
 print("IDI Correlation:", correlation, f"p={round(p, 4)}")
 correlation, p = spearmanr(combined_data["Infections"], combined_data["IDI"])
@@ -68,17 +69,17 @@ plt.tight_layout()
 plt.savefig("figures/correlation_gci")
 plt.close()
 
-correlation, p = pearsonr(combined_data["Infections"], combined_data["GDP"])
-print("GDP Correlation:", correlation, f"p={round(p, 4)}")
-correlation, p = spearmanr(combined_data["Infections"], combined_data["GDP"])
-print("GDP Spearman:", correlation, f"p={round(p, 4)}")
-sns.jointplot(x="GDP", y="Infections", data=combined_data, kind="reg")
+correlation, p = pearsonr(combined_data["Infections"], combined_data["Crime"])
+print("Crime Correlation:", correlation, f"p={round(p, 4)}")
+correlation, p = spearmanr(combined_data["Infections"], combined_data["Crime"])
+print("Crime Spearman:", correlation, f"p={round(p, 4)}")
+sns.jointplot(x="Crime", y="Infections", data=combined_data, kind="reg")
 plt.tight_layout()
-plt.savefig("figures/correlation_gdp")
+plt.savefig("figures/correlation_crime")
 plt.close()
 
 # Extract X and y from dataframe and fit OLS with combined metrics
 formula = (
-    "Infections ~ IDI + GCI + GDP + IDI * GCI + GCI * GDP + IDI * GDP + IDI * GCI * GDP"
+    "Infections ~ IDI + GCI + Crime + IDI * GCI + GCI * Crime + IDI * Crime + IDI * GCI * Crime"
 )
 print(smf.ols(formula, data=combined_data).fit().summary())

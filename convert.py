@@ -26,7 +26,7 @@ def country_to_code(country_name):
 # gci_data.to_csv('gdp_per_capita_codes.csv', index=False)
 # # print(gci_data['Country'].value_counts())
 
-gci_data = pd.read_csv("idi.csv")
+gci_data = pd.read_csv("crime_index.csv",sep=';')
 gci_data['Country'] = gci_data['Country'].apply(country_to_code)
-gci_data.to_csv('idi_codes.csv', index=False)
+gci_data.to_csv('crime_index_codes.csv', index=False)
 print(gci_data['Country'].value_counts())
