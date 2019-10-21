@@ -78,8 +78,19 @@ plt.tight_layout()
 plt.savefig("figures/correlation_crime")
 plt.close()
 
+# Standardize variables before using in the combined effect model
 # Extract X and y from dataframe and fit OLS with combined metrics
 formula = (
-    "Infections ~ IDI + GCI + Crime + IDI * GCI + GCI * Crime + IDI * Crime + IDI * GCI * Crime"
+    "standardize(Infections) ~ standardize(IDI) + standardize(GCI) + standardize(Crime) + standardize(IDI) * standardize(GCI) + standardize(GCI) * standardize(Crime) + standardize(IDI) * standardize(Crime) + standardize(IDI) * standardize(GCI) * standardize(Crime)"
+)
+print(smf.ols(formula, data=combined_data).fit().summary())
+
+formula = (
+    "standardize(Infections) ~ standardize(IDI) + standardize(GCI) + standardize(IDI) * standardize(GCI)"
+)
+print(smf.ols(formula, data=combined_data).fit().summary())
+
+formula = (
+    "standardize(Infections) ~ standardize(IDI) + standardize(GCI) + + standardize(Crime) + standardize(IDI) * standardize(GCI) + standardize(IDI) * standardize(Crime)"
 )
 print(smf.ols(formula, data=combined_data).fit().summary())
