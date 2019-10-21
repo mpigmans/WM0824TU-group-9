@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pycountry
 import numpy as np
 import datetime
-from scipy.stats import pearsonr, spearmanr
+from scipy.stats import pearsonr, spearmanr, shapiro, normaltest
 import statsmodels.formula.api as smf
 
 # Set parameters for plot:
@@ -47,15 +47,33 @@ combined_data = pd.merge(combined_data, gci_data, on="Country", how="inner")
 combined_data = pd.merge(combined_data, crime_data, on="Country", how="inner")
 combined_data = pd.merge(combined_data, idi_data, on="Country", how="inner")
 
+plt.hist(combined_data["Infections"])
+plt.ylabel("Number of countries")
+plt.xlabel("Number of infections")
+plt.tight_layout()
+plt.savefig("figures/infections_pre")
+plt.close()
 # Make infections normal distribution using logarithm
-print(combined_data)
 combined_data["Infections"] = combined_data["Infections"].apply(np.log10)
-print(combined_data)
+plt.ylabel("Number of countries")
+plt.xlabel("Number of infections (log10)")
+plt.hist(combined_data["Infections"])
+plt.tight_layout()
+plt.savefig("figures/infections_post")
+plt.close()
+#Normality test
+stat, p = shapiro(combined_data["Infections"])
+print("Normality of infections:")
+print('Shapiro=%.3f, p=%.3f' % (stat, p))
+stat, p = normaltest(combined_data["Infections"])
+print('Dagostino=%.3f, p=%.3f' % (stat, p))
+
 correlation, p = pearsonr(combined_data["Infections"], combined_data["IDI"])
 print("IDI Correlation:", correlation, f"p={round(p, 4)}")
 correlation, p = spearmanr(combined_data["Infections"], combined_data["IDI"])
 print("IDI Spearman:", correlation, f"p={round(p, 4)}")
-sns.jointplot(x="IDI", y="Infections", data=combined_data, kind="reg")
+g = sns.jointplot(x="IDI", y="Infections", data=combined_data, kind="reg")
+plt.ylabel("Log of normalized infections")
 plt.tight_layout()
 plt.savefig("figures/correlation_idi")
 plt.close()
@@ -64,7 +82,8 @@ correlation, p = pearsonr(combined_data["Infections"], combined_data["GCI"])
 print("GCI Correlation:", correlation, f"p={round(p, 4)}")
 correlation, p = spearmanr(combined_data["Infections"], combined_data["GCI"])
 print("GCI Spearman:", correlation, f"p={round(p, 4)}")
-sns.jointplot(x="GCI", y="Infections", data=combined_data, kind="reg")
+g = sns.jointplot(x="GCI", y="Infections", data=combined_data, kind="reg")
+plt.ylabel("Log of normalized infections")
 plt.tight_layout()
 plt.savefig("figures/correlation_gci")
 plt.close()
@@ -73,12 +92,34 @@ correlation, p = pearsonr(combined_data["Infections"], combined_data["Crime"])
 print("Crime Correlation:", correlation, f"p={round(p, 4)}")
 correlation, p = spearmanr(combined_data["Infections"], combined_data["Crime"])
 print("Crime Spearman:", correlation, f"p={round(p, 4)}")
-sns.jointplot(x="Crime", y="Infections", data=combined_data, kind="reg")
+g = sns.jointplot(x="Crime", y="Infections", data=combined_data, kind="reg")
+plt.ylabel("Log of normalized infections")
+
 plt.tight_layout()
 plt.savefig("figures/correlation_crime")
 plt.close()
 
-# Standardize variables before using in the combined effect model
+correlation, p = pearsonr(combined_data["IDI"], combined_data["Crime"])
+print("IDI/Crime Correlation:", correlation, p)
+correlation, p = spearmanr(combined_data["IDI"], combined_data["Crime"])
+print("IDI/Crime Spearman:", correlation, p)
+g = sns.jointplot(x="IDI", y="Crime", data=combined_data, kind="reg")
+plt.ylabel('Crime Index Rate')
+plt.tight_layout()
+plt.savefig("figures/IDI_Crime")
+plt.close()
+
+correlation, p = pearsonr(combined_data["IDI"], combined_data["GCI"])
+print("IDI/Crime Correlation:", correlation, p)
+correlation, p = spearmanr(combined_data["IDI"], combined_data["GCI"])
+print("IDI/Crime Spearman:", correlation, p)
+g = sns.jointplot(x="IDI", y="GCI", data=combined_data, kind="reg")
+plt.ylabel('Crime Index Rate')
+plt.tight_layout()
+plt.savefig("figures/GCI_IDI")
+plt.close()
+
+# Standardize variables then
 # Extract X and y from dataframe and fit OLS with combined metrics
 formula = (
     "standardize(Infections) ~ standardize(IDI) + standardize(GCI) + standardize(Crime) + standardize(IDI) * standardize(GCI) + standardize(GCI) * standardize(Crime) + standardize(IDI) * standardize(Crime) + standardize(IDI) * standardize(GCI) * standardize(Crime)"
@@ -87,10 +128,5 @@ print(smf.ols(formula, data=combined_data).fit().summary())
 
 formula = (
     "standardize(Infections) ~ standardize(IDI) + standardize(GCI) + standardize(IDI) * standardize(GCI)"
-)
-print(smf.ols(formula, data=combined_data).fit().summary())
-
-formula = (
-    "standardize(Infections) ~ standardize(IDI) + standardize(GCI) + + standardize(Crime) + standardize(IDI) * standardize(GCI) + standardize(IDI) * standardize(Crime)"
 )
 print(smf.ols(formula, data=combined_data).fit().summary())
