@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pycountry
 import numpy as np
 import datetime
-from scipy.stats import pearsonr, spearmanr
+from scipy.stats import pearsonr, spearmanr, shapiro, normaltest
 import statsmodels.formula.api as smf
 
 # Set parameters for plot:
@@ -47,10 +47,27 @@ combined_data = pd.merge(combined_data, gci_data, on="Country", how="inner")
 combined_data = pd.merge(combined_data, crime_data, on="Country", how="inner")
 combined_data = pd.merge(combined_data, idi_data, on="Country", how="inner")
 
+plt.hist(combined_data["Infections"])
+plt.ylabel("Number of countries")
+plt.xlabel("Number of infections")
+plt.tight_layout()
+plt.savefig("figures/infections_pre")
+plt.close()
 # Make infections normal distribution using logarithm
-print(combined_data)
 combined_data["Infections"] = combined_data["Infections"].apply(np.log10)
-print(combined_data)
+plt.ylabel("Number of countries")
+plt.xlabel("Number of infections (log10)")
+plt.hist(combined_data["Infections"])
+plt.tight_layout()
+plt.savefig("figures/infections_post")
+plt.close()
+#Normality test
+stat, p = shapiro(combined_data["Infections"])
+print("Normality of infections:")
+print('Shapiro=%.3f, p=%.3f' % (stat, p))
+stat, p = normaltest(combined_data["Infections"])
+print('Dagostino=%.3f, p=%.3f' % (stat, p))
+
 correlation, p = pearsonr(combined_data["Infections"], combined_data["IDI"])
 print("IDI Correlation:", correlation, f"p={round(p, 4)}")
 correlation, p = spearmanr(combined_data["Infections"], combined_data["IDI"])
